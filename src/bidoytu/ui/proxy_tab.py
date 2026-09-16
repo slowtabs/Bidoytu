@@ -1,4 +1,4 @@
-"""Proxy tab: Target scope, proxy controls, and HTTP History / Intercept tabs.
+"""Proxy tab: proxy controls and HTTP History / Intercept tabs.
 
 The proxy settings (listen host/port, start/stop, CA certificate export) live
 in a popup menu opened from a "Settings" button pinned to the far right of the
@@ -6,23 +6,17 @@ sub-tab bar, so the main area stays uncluttered.
 """
 from __future__ import annotations
 
-import re
-
-from PySide6.QtCore import QSize, Signal, QPoint
+from PySide6.QtCore import Signal, QPoint
 from PySide6.QtGui import QIntValidator
 from PySide6.QtWidgets import (
-    QAbstractItemView,
     QCheckBox,
-    QGroupBox,
     QGridLayout,
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QListWidget,
     QFrame,
     QMessageBox,
     QPushButton,
-    QStyle,
     QTabWidget,
     QVBoxLayout,
     QWidget,
@@ -31,87 +25,11 @@ from PySide6.QtWidgets import (
 from bidoytu.ui.flow_table_model import FlowTableModel
 from bidoytu.ui.history_view import HistoryView
 from bidoytu.ui.intercept_view import InterceptView
-from bidoytu.ui.theme import ui_icon
-
-
-class _ScopeList(QWidget):
-    """Editable list of host patterns used by the Target scope panel."""
-
-    changed = Signal()
-
-    def __init__(self, title: str, placeholder: str, parent=None) -> None:
-        super().__init__(parent)
-        self._title = QLabel(title)
-        self._title.setStyleSheet("font-weight: 600;")
-        self.entry_edit = QLineEdit()
-        self.entry_edit.setPlaceholderText(placeholder)
-        self.entry_edit.returnPressed.connect(self._add_entries)
-
-        self.add_btn = QPushButton("Add")
-        self.add_btn.clicked.connect(self._add_entries)
-        add_row = QHBoxLayout()
-        add_row.setContentsMargins(0, 0, 0, 0)
-        add_row.addWidget(self.entry_edit, 1)
-        add_row.addWidget(self.add_btn)
-
-        self.entries = QListWidget()
-        self.entries.setSelectionMode(QAbstractItemView.SingleSelection)
-        self.entries.setMinimumHeight(72)
-        self.entries.setToolTip(
-            "A domain also matches its subdomains; for example, example.com "
-            "matches api.example.com."
-        )
-
-        self.remove_btn = QPushButton("Remove selected")
-        self.remove_btn.clicked.connect(self._remove_selected)
-        self.remove_btn.setEnabled(False)
-        self.entries.itemSelectionChanged.connect(
-            lambda: self.remove_btn.setEnabled(bool(self.entries.selectedItems()))
-        )
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(5)
-        layout.addWidget(self._title)
-        layout.addLayout(add_row)
-        layout.addWidget(self.entries)
-        layout.addWidget(self.remove_btn)
-
-    def _add_entries(self) -> None:
-        raw = self.entry_edit.text().strip()
-        if not raw:
-            return
-        existing = {
-            self.entries.item(i).text().casefold()
-            for i in range(self.entries.count())
-        }
-        for value in re.split(r"[,;\s]+", raw):
-            value = value.strip().strip(".")
-            if value and value.casefold() not in existing:
-                self.entries.addItem(value)
-                existing.add(value.casefold())
-        self.entry_edit.clear()
-        self.changed.emit()
-
-    def _remove_selected(self) -> None:
-        for item in self.entries.selectedItems():
-            self.entries.takeItem(self.entries.row(item))
-        self.changed.emit()
-
-    def values(self) -> list[str]:
-        return [self.entries.item(i).text() for i in range(self.entries.count())]
-
-    def set_values(self, values: list[str]) -> None:
-        self.entries.clear()
-        for value in values:
-            if str(value).strip():
-                self.entries.addItem(str(value).strip())
 
 
 class ProxyTab(QWidget):
     """Container widget for everything under the top-level "Proxy" tab."""
 
-    scope_changed = Signal(list, list)
     clear_history_requested = Signal()  # emitted on confirmed Clear History
     browser_integration_requested = Signal()
 

@@ -38,6 +38,7 @@ from bidoytu.ui.intercept_activity_model import (
     InterceptActivityModel,
 )
 from bidoytu.ui.message_view import MessageView
+from bidoytu.ui.theme import ACCENT, ACCENT_HOVER
 
 
 class InterceptView(QWidget):
@@ -80,6 +81,21 @@ class InterceptView(QWidget):
 
         self._toggle_btn = QPushButton("Intercept is off")
         self._toggle_btn.setCheckable(True)
+        # Light up in the app accent (blurple) while interception is on, and
+        # fall back to the normal dark button when off. Scoped by object name
+        # so it doesn't affect other buttons.
+        self._toggle_btn.setObjectName("interceptToggle")
+        self._toggle_btn.setStyleSheet(
+            "QPushButton#interceptToggle:checked {"
+            f" background-color: {ACCENT};"
+            " color: #ffffff;"
+            f" border: 1px solid {ACCENT};"
+            " }"
+            "QPushButton#interceptToggle:checked:hover {"
+            f" background-color: {ACCENT_HOVER};"
+            f" border: 1px solid {ACCENT_HOVER};"
+            " }"
+        )
         self._toggle_btn.toggled.connect(self._on_toggle)
 
         # Global "intercept responses" switch (Burp/Caido style). When checked,
